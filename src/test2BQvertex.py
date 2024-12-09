@@ -160,7 +160,7 @@ def get_response(user_query: str, client, chat_history: list, dataset_id: str):
 
 def exec_query(client, query): #maybe to handle the error when execute the sql
     try:
-        return client.query(query.replace('sql','').replace('','').strip()).result().to_dataframe()
+        return client.query(query.replace('```sql','').replace('```','').strip()).result().to_dataframe()
     except Exception as e:
         return f"Error executing SQL: {str(e)}"
 
@@ -169,69 +169,74 @@ if "chat_history" not in st.session_state:
         AIMessage(content="Hola soy Asistente OIAD, un chatbot para solventar dudas de siembra y producción de granos basicos y hortalizas."
                   "Recuerda que me encuentro en una etapa de desarrollo, la información que genero no es oficial y debe ser validada."),
     ]
+def main():
+    load_dotenv()
 
-load_dotenv()
+    st.set_page_config(
+        page_title="Asistente MAG-OIAD",
+        page_icon="config\gobierno.png",
+        layout="wide",
+    )
+    col1, col2 = st.columns([8, 1])
+    with col1:
+        st.title("Asistente MAG-OIAD")
+    with col2:
+        st.image("config\MAG.png")
 
-st.set_page_config(
-    page_title="Asistente MAG-OIAD",
-    page_icon="config\gobierno.png",
-    layout="wide",
-)
-col1, col2 = st.columns([8, 1])
-with col1:
-    st.title("Asistente MAG-OIAD")
-with col2:
-    st.image("config\MAG.png")
+    st.markdown("""
+        <style>
+            .st-emotion-cache-czk5ss.e16jpq800
+            {
+                visibility: hidden;
+            }
+            .stDeployButton
+            {
+                visibility: hidden;
+            }
+            .st-emotion-cache-bm2z3a ea3mdgi8 {
+                background-color: white;
+            }
+                
+        </style>
+    """, unsafe_allow_html=True)# 
 
-st.markdown("""
-    <style>
-        .st-emotion-cache-czk5ss.e16jpq800
-        {
-            visibility: hidden;
-        }
-        .stDeployButton
-        {
-            visibility: hidden;
-        }
-            
-    </style>
-""", unsafe_allow_html=True)# 
+    with st.sidebar:
+        st.subheader("Settings")
+        st.write("Esto es una prueba de un chat con BigQuery usando vertexAI")
 
-with st.sidebar:
-    st.subheader("Settings")
-    st.write("Esto es una prueba de un chat con BigQuery usando vertexAI")
+        with st.expander("Ejemplos de prompts", expanded=True):
+            st.write(
+            """
+                - Cuentame sobre la información que me puedes proporcionar para granosbasicos y hortalizas.
+                - ¿Cual es la produccion de maiz en el año 2022?
+                - Quiero saber los 5 departamentos con mayor cultivo de tomate
+                - Cual es la estructura que genero una mayor produccion de tomate en el año 2019? 
+                - Cuanto es la superficie para sorgo en la epoca de apante en el año 2019?
+            """
+            )
+        st.text_input("GOOGLE PROJECTID", value="AI-MAG", key="Host", disabled=True)
+        st.text_input("DATASET", value="CHATBOT", key="dataset", disabled=True)
 
-    with st.expander("Ejemplos de prompts", expanded=True):
-        st.write(
-        """
-            - Cuentame sobre la información que me puedes proporcionar para granosbasicos y hortalizas.
-            - ¿Cual es la produccion de maiz en el año 2022?
-            - Quiero saber los 5 departamentos con mayor cultivo de tomate
-            - Cual es la estructura que genero una mayor produccion de tomate en el año 2019? 
-            - Cuanto es la superficie para sorgo en la epoca de apante en el año 2019?
-        """
-        )
-    st.text_input("GOOGLE PROJECTID", value="AI-MAG", key="Host", disabled=True)
-    st.text_input("DATASET", value="CHATBOT", key="dataset", disabled=True)
+    for message in st.session_state.chat_history:
+        if isinstance(message, AIMessage):
+            with st.chat_message("AI"):
+                st.markdown(message.content)
+        elif isinstance(message, HumanMessage):
+            with st.chat_message("Human"):
+                st.markdown(message.content)
 
-for message in st.session_state.chat_history:
-    if isinstance(message, AIMessage):
-        with st.chat_message("AI"):
-            st.markdown(message.content)
-    elif isinstance(message, HumanMessage):
+    user_query = st.chat_input("Type a message...")
+    dataset_id = "ai-mag-431021.Chatbot"
+    if user_query is not None and user_query.strip() != "":
+        st.session_state.chat_history.append(HumanMessage(content=user_query))
+
         with st.chat_message("Human"):
-            st.markdown(message.content)
+            st.markdown(user_query)
 
-user_query = st.chat_input("Type a message...")
-dataset_id = "ai-mag-431021.Chatbot"
-if user_query is not None and user_query.strip() != "":
-    st.session_state.chat_history.append(HumanMessage(content=user_query))
-
-    with st.chat_message("Human"):
-        st.markdown(user_query)
-
-    with st.chat_message("AI"):
-        response = get_response(user_query, st.session_state.client, st.session_state.chat_history, dataset_id)
-        ai_response = st.write_stream(response)
-    
-    st.session_state.chat_history.append(AIMessage(content=ai_response))
+        with st.chat_message("AI"):
+            response = get_response(user_query, st.session_state.client, st.session_state.chat_history, dataset_id)
+            ai_response = st.write_stream(response)
+        
+        st.session_state.chat_history.append(AIMessage(content=ai_response))
+if __name__ == "__main__":
+    main()

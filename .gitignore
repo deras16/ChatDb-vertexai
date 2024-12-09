@@ -1,0 +1,16 @@
+# Excluir el entorno virtual
+venv/
+env/
+
+# Archivos compilados de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+#Carpetas 
+src/
+
+#codigo
+feedback.py
+setup.sh
+Dockerfile
